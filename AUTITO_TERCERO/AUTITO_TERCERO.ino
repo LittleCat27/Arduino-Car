@@ -9,12 +9,11 @@
  * - Control Anti-Choque con sensores Ultrasonicos
  * - Dirección con Servomotor
  * - Control de velocidades con Cambios
- * - Sistema de Luces (Remplazado Temporalmente por LED_TEST para chequear Codigo no bloqueante)
+ * - Sistema de Luces 
+ * - LED_TEST para chequear Codigo no bloqueante
  */
 
 #include <DistanceSensor.h>
-#include <Servo.h>
-
 
 #define PIN_RX          0
 
@@ -59,7 +58,7 @@
 #define AVANZAR_M2(x,y) digitalWrite(PIN_M2_I1,x); digitalWrite(PIN_M2_I2,!x); analogWrite(PIN_SPD_M2,y)
 #define AVANZAR_M1(x,y) digitalWrite(PIN_M1_I1,!x); digitalWrite(PIN_M1_I2,x); analogWrite(PIN_SPD_M1,y)
 
-//#define AVANZAR(x,y)    AVANZAR_M2(x,y); AVANZAR_M1(x,y)
+//#define AVANZAR(x,y)    AVANZAR_M2(x,y); AVANZAR_M1(x,y) //Esto por alguna Razon el codigo no lo tomaba, asi que se convirtio en funcion
 
 #define DOBLAR(x)       analogWrite(PIN_SERVO, map(x,0,180,0,255)) 
 
@@ -76,8 +75,6 @@
 DistanceSensor sensorTracero(PIN_TR_2, PIN_EC_2);
 DistanceSensor sensorDelantero(PIN_TR_1, PIN_EC_1);
 
-//Declaracion del servo
-//Servo servoMotor;
 
 //Variables globales.
 int Cambio = 0;
@@ -100,7 +97,6 @@ void setup()
   CONFIG_PIN_LUZ;
   CONFIGURAR_LEDTEST; 
   
-  //servoMotor.attach(PIN_SERVO);
 
   DOBLAR(AnguloServo);
 
@@ -113,14 +109,12 @@ void setup()
 
 void loop() 
 { 
-  //AVANZAR_M2(true,100); 
-  //AVANZAR_M1(true,100);
   ControlManual();
   Blink();
-  //DOBLAR(AnguloServo); //Le recuerdo al servo en que angulo debe estar.
+
 }
 
-void AVANZAR(bool x,char y){
+void AVANZAR(bool x,char y){ //Esto por alguna Razon el codigo no lo tomaba, asi que se convirtio en funcion
   AVANZAR_M2(x,y); 
   AVANZAR_M1(x,y);
 }
@@ -223,14 +217,14 @@ void IR_ATRAS()
 void IR_DERECHA()
 {
   if(AnguloServo > ANGULO_MAXIMO) return;
-  AnguloServo += 15;
+  AnguloServo += 10;
   DOBLAR(AnguloServo);
 }
 
 void IR_IZQUIERDA()
 {
   if(AnguloServo < ANGULO_MINIMO) return;
-  AnguloServo -= 15;
+  AnguloServo -= 10;
   DOBLAR(AnguloServo);
 }
 
@@ -311,27 +305,3 @@ void Blink(void)
       tpo_espera=VELOCIDAD_LEDTEST - TIEMPO_PRENDIDOTEST;
     }
   }
-
-/*void ESTACIONAR() //Pruebas no concluidas
-{
-  Cambio = 3;
-  int anguloDoblado = ANGULO_MAXIMO;
-  int angulosTotales = ANGULO_MAXIMO - ANGULO_MINIMO;
-  DOBLAR(ANGULO_MAXIMO);
-  for(int i=ANGULO_MAXIMO; i > AnguloServo; i--)
-  {
-    DOBLAR(i);
-    bool control = CONTROL_DE_CHOQUES();
-    if(control) IR_ATRAS();
-    delay(27);
-  }
-  for(int i=AnguloServo; i > ANGULO_MINIMO; i--)
-  {
-    DOBLAR(i);
-    bool control = CONTROL_DE_CHOQUES();
-    if(control) IR_ATRAS();
-    delay(27);
-  }
-  FRENAR();
-  DOBLAR(AnguloServo);
-}*/
