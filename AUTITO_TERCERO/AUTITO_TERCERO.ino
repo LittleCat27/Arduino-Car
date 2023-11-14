@@ -40,8 +40,8 @@
 //LED_TEST
 #define VELOCIDAD_LEDTEST   2000
 #define TIEMPO_PRENDIDOTEST 100
-#define CAMBIAR_LEDTEST(x)   digitalWrite(PIN_LUCES, x)
-#define CONFIGURAR_LEDTEST  pinMode(PIN_LUCES, OUTPUT)
+#define CAMBIAR_LEDTEST(x)   digitalWrite(A0, x)
+#define CONFIGURAR_LEDTEST  pinMode(A0, OUTPUT)
 
 
 #define CONFIG_PIN_SERV pinMode(PIN_SERVO,OUTPUT)
@@ -59,9 +59,9 @@
 #define AVANZAR_M2(x,y) digitalWrite(PIN_M2_I1,x); digitalWrite(PIN_M2_I2,!x); analogWrite(PIN_SPD_M2,y)
 #define AVANZAR_M1(x,y) digitalWrite(PIN_M1_I1,!x); digitalWrite(PIN_M1_I2,x); analogWrite(PIN_SPD_M1,y)
 
-#define AVANZAR(x,y)    AVANZAR_M2(x,y); AVANZAR_M1(x,y)
+//#define AVANZAR(x,y)    AVANZAR_M2(x,y); AVANZAR_M1(x,y)
 
-#define DOBLAR(x)       servoMotor.write(x)
+#define DOBLAR(x)       analogWrite(PIN_SERVO, map(x,0,180,0,255)) 
 
 #define PRENDER_LUCES(x) digitalWrite(PIN_LUCES,x)
 
@@ -77,7 +77,7 @@ DistanceSensor sensorTracero(PIN_TR_2, PIN_EC_2);
 DistanceSensor sensorDelantero(PIN_TR_1, PIN_EC_1);
 
 //Declaracion del servo
-Servo servoMotor;
+//Servo servoMotor;
 
 //Variables globales.
 int Cambio = 0;
@@ -87,6 +87,7 @@ bool LucesPrendidas;
 
 void setup() 
 {
+  Serial.begin(9600);
   CONFIG_PIN_M1I1;
   CONFIG_PIN_M1I2;
   
@@ -96,34 +97,39 @@ void setup()
   CONFIG_PIN_M2SP;
   CONFIG_PIN_M1SP;
 
-  //CONFIG_PIN_LUZ;
+  CONFIG_PIN_LUZ;
   CONFIGURAR_LEDTEST; 
   
-  servoMotor.attach(PIN_SERVO);
+  //servoMotor.attach(PIN_SERVO);
 
   DOBLAR(AnguloServo);
 
   pinMode(LED_BUILTIN,OUTPUT);
   digitalWrite(LED_BUILTIN,LOW);
 
-  //LucesPrendidas = true;
-  //PRENDER_LUCES(LucesPrendidas);
+  LucesPrendidas = false;
+  PRENDER_LUCES(LucesPrendidas);
 }
 
 void loop() 
 { 
+  //AVANZAR_M2(true,100); 
+  //AVANZAR_M1(true,100);
   ControlManual();
   Blink();
-  DOBLAR(AnguloServo); //Le recuerdo al servo en que angulo debe estar.
+  //DOBLAR(AnguloServo); //Le recuerdo al servo en que angulo debe estar.
+}
+
+void AVANZAR(bool x,char y){
+  AVANZAR_M2(x,y); 
+  AVANZAR_M1(x,y);
 }
 
 void ControlManual()
 {
   if(CONTROL_DE_CHOQUES()) 
   {
-    if(!Serial.available()) return;
     char comando = Serial.read();
-    
     if(comando == 'P' || comando == ' ') return;
     EJECUTAR_COMANDO(comando);
     
@@ -157,10 +163,10 @@ void EJECUTAR_COMANDO(char comando)
       case 'N':// "N" -> Cambio--
         BAJAR_CAMBIO();
         break;
-     /*case 'L':// "L" -> Luces
+      case 'L':// "L" -> Luces
         LucesPrendidas = !LucesPrendidas;
         PRENDER_LUCES(LucesPrendidas);
-        break;*/
+        break;
       /*case 'E':
         ESTACIONAR();
       break;*/
@@ -189,6 +195,7 @@ void IR_ADELANTE()
       AVANZAR(true,0);
       break;
   }
+  //AVANZAR(true,255);
 }
 
 void IR_ATRAS()
@@ -216,13 +223,15 @@ void IR_ATRAS()
 void IR_DERECHA()
 {
   if(AnguloServo > ANGULO_MAXIMO) return;
-  AnguloServo += 5;
+  AnguloServo += 15;
+  DOBLAR(AnguloServo);
 }
 
 void IR_IZQUIERDA()
 {
   if(AnguloServo < ANGULO_MINIMO) return;
-  AnguloServo -= 5;
+  AnguloServo -= 15;
+  DOBLAR(AnguloServo);
 }
 
 void FRENAR()
@@ -251,7 +260,7 @@ bool CONTROL_DE_CHOQUES()
 {
   static unsigned long tiempoAnterior = 0;
 
-  if(TIEMPO_CONTROL > (millis() - tiempoAnterior)) return true;
+  if((millis() - tiempoAnterior) < TIEMPO_CONTROL) return true;
   tiempoAnterior = millis();
 
   return(ControlDistancia(DireccionActual ? sensorDelantero.getCM() : sensorTracero.getCM()));
