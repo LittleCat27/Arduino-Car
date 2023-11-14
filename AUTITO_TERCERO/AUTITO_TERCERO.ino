@@ -202,24 +202,11 @@ bool CONTROL_DE_CHOQUES()
 bool ControlDistancia(int distancia)
 {
 
-  if(distancia <= 20 && Cambio > 0) {
-    Cambio = 0;
-    return false;
-  }
+  if(distancia <= 20 && Cambio > 0) Cambio = 0;
    
-  if(distancia > 20 && distancia <= 30 && Cambio > 1)
-  {
-    Cambio = 1;
-    
-    return true;
-  }
+  if(distancia > 20 && distancia <= 30 && Cambio > 1) Cambio = 1;
 
-  if(distancia > 30 && distancia <= 40 && Cambio > 2)
-  {
-    Cambio = 2;
-    
-    return true;
-  }
+  if(distancia > 30 && distancia <= 40 && Cambio > 2) Cambio = 2;
 
   return true;
 }
