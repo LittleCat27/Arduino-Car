@@ -15,25 +15,25 @@
 
 #include "DistanceSensor.h"
 
-#define PIN_RX          0
+#define PIN_RX               0
 
-#define PIN_MOT_DER__I1       2
-#define PIN_MOT_DER__I2       4
+#define PIN_MOT_DER__I1      2
+#define PIN_MOT_DER__I2      4
 #define PIN_SPD_MOT_DER      3
 
-#define PIN_MOT_IZQ__I1       7
-#define PIN_MOT_IZQ__I2       8
+#define PIN_MOT_IZQ__I1      7
+#define PIN_MOT_IZQ__I2      8
 #define PIN_SPD_MOT_IZQ      9
 
-#define PIN_TR_1        5
-#define PIN_EC_1        6
+#define PIN_TR_1             5
+#define PIN_EC_1             6
 
 //Pines sensores Distancia
-#define PIN_EC_2        12
-#define PIN_TR_2        13
+#define PIN_EC_2             12
+#define PIN_TR_2             13
 
-#define PIN_SERVO       10
-#define PIN_LUCES       11
+#define PIN_SERVO            10
+#define PIN_LUCES            11
 
 
 //LED_TEST
@@ -45,20 +45,17 @@
 
 #define CONFIG_PIN_SERV pinMode(PIN_SERVO,OUTPUT)
 
-#define CONFIG_MOT_DER_I1 pinMode(PIN_MOT_DER__I1,OUTPUT)
-#define CONFIG_MOT_DER_I2 pinMode(PIN_MOT_DER__I2,OUTPUT)
-#define CONFIG_MOT_DERSP pinMode(PIN_SPD_MOT_DER,OUTPUT)
-
-#define CONFIG_MOT_IZQ_I1 pinMode(PIN_MOT_IZQ__I1,OUTPUT)
-#define CONFIG_MOT_IZQ_I2 pinMode(PIN_MOT_IZQ__I2,OUTPUT)
-#define CONFIG_MOT_IZQSP pinMode(PIN_SPD_MOT_IZQ,OUTPUT)
+#define CONFIG_MOT_DER pinMode(PIN_MOT_DER__I1,OUTPUT); pinMode(PIN_MOT_DER__I2,OUTPUT); pinMode(PIN_SPD_MOT_DER,OUTPUT)
+#define CONFIG_MOT_IZQ pinMode(PIN_MOT_IZQ__I1,OUTPUT); pinMode(PIN_MOT_IZQ__I2,OUTPUT); pinMode(PIN_SPD_MOT_IZQ,OUTPUT)
 
 #define CONFIG_PIN_LUZ  pinMode(PIN_LUCES,OUTPUT)
 
 #define AVANZAR_MOT_IZQ(x,y) digitalWrite(PIN_MOT_IZQ__I1,x); digitalWrite(PIN_MOT_IZQ__I2,!x); analogWrite(PIN_SPD_MOT_IZQ,y)
 #define AVANZAR_MOT_DER(x,y) digitalWrite(PIN_MOT_DER__I1,!x); digitalWrite(PIN_MOT_DER__I2,x); analogWrite(PIN_SPD_MOT_DER,y)
 
-//#define AVANZAR(x,y)    AVANZAR_MOT_IZQ(x,y); AVANZAR_MOT_DER(x,y) //Esto por alguna Razon el codigo no lo tomaba, asi que se convirtio en funcion
+
+//Es la conbinación de los 2 define de arriba
+#define AVANZAR(x,y)    digitalWrite(PIN_MOT_IZQ__I1,x); digitalWrite(PIN_MOT_IZQ__I2,!x); analogWrite(PIN_SPD_MOT_IZQ,y); digitalWrite(PIN_MOT_DER__I1,!x); digitalWrite(PIN_MOT_DER__I2,x); analogWrite(PIN_SPD_MOT_DER,y)
 
 #define DOBLAR(x)       analogWrite(PIN_SERVO, map(x,0,180,0,255)) 
 
@@ -101,14 +98,9 @@ int velocidades[] = {0,84, 168, 255 };
 void setup() 
 {
   Serial.begin(9600);
-  CONFIG_MOT_DER_I1;
-  CONFIG_MOT_DER_I2;
-  
-  CONFIG_MOT_IZQ_I1;
-  CONFIG_MOT_IZQ_I2;
-  
-  CONFIG_MOT_IZQSP;
-  CONFIG_MOT_DERSP;
+  CONFIG_MOT_DER;
+  CONFIG_MOT_IZQ;
+
 
   CONFIG_PIN_LUZ;
   CONFIGURAR_LEDTEST; 
@@ -129,23 +121,27 @@ void loop()
 { 
   ControlManual();
   Blink();
-
+  ControlMovimiento();
 }
 
-void AVANZAR(){ //Esto por alguna Razon el codigo no lo tomaba, asi que se convirtio en funcion
-  AVANZAR_MOT_IZQ(velocidades[Cambio],DireccionActual); 
-  AVANZAR_MOT_DER(velocidades[Cambio],DireccionActual);
+void ControlMovimiento(){
+  static unsigned int cambioAnt = Cambio;
+  static unsigned int direAnt = DireccionActual;
+
+  if(cambioAnt == Cambio && direAnt == DireccionActual) return;
+  cambioAnt = Cambio;
+  direAnt = DireccionActual;
+  AVANZAR(velocidades[Cambio],DireccionActual);
 }
 
 void ControlManual()
 {
-  if(CONTROL_DE_CHOQUES()) 
-  {
-    char comando = Serial.read();
-    if(comando == 'P' || comando == ' ') return;
-    EJECUTAR_COMANDO(comando);
+  if(!CONTROL_DE_CHOQUES()) return;
+  if(!Serial.available()) return;
+  char comando = Serial.read();
+  if( comando == ' ') return;
+  EJECUTAR_COMANDO(comando);
     
-  }else AVANZAR();
 }
 
 void EJECUTAR_COMANDO(char comando)
@@ -159,7 +155,7 @@ void EJECUTAR_COMANDO(char comando)
       break;
     case CMD_ABAJO:
       DireccionActual = 0;
-      AVANZAR();
+      
       break;
     case CMD_DERECHA:
       if(AnguloServo > ANGULO_MAXIMO) return;
@@ -168,19 +164,19 @@ void EJECUTAR_COMANDO(char comando)
       break;
     case CMD_ARRIBA:
       DireccionActual = 1;
-      AVANZAR();
+      
       break;
     case CMD_FRENAR:
       Cambio = 0;
-      AVANZAR();
+      
       break;
     case CMD_SUBE_CAMBIO:
       if(Cambio < 3) Cambio++; 
-      AVANZAR();
+      
       break;
     case CMD_BAJA_CAMBIO:
       if(Cambio > 0) Cambio--;
-      AVANZAR();
+      
       break;
     case CMD_LUCES:
       LucesPrendidas = !LucesPrendidas;
@@ -214,14 +210,14 @@ bool ControlDistancia(int distancia)
   if(distancia > 20 && distancia <= 30 && Cambio > 1)
   {
     Cambio = 1;
-    AVANZAR();
+    
     return true;
   }
 
   if(distancia > 30 && distancia <= 40 && Cambio > 2)
   {
     Cambio = 2;
-    AVANZAR();
+    
     return true;
   }
 
